@@ -110,6 +110,8 @@ int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out
 
     size_t total_size = header_len + len;
     char *buffer = malloc(total_size);
+    if (!buffer) 
+        return -1;
     memcpy(buffer, header, header_len);
     memcpy(buffer + header_len, data, len);
 
@@ -133,11 +135,24 @@ int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out
     char tmp_path[512];
     snprintf(tmp_path, sizeof(tmp_path), "%s.tmp", final_path);
     int fd = open(tmp_path, O_CREAT | O_WRONLY | O_TRUNC, 0644);
+    if (fd < 0) 
+    {
+        free(buffer);
+        return -1;
+    }    
 
-    write(fd, buffer, total_size);
+    if (write(fd, buffer, total_size) != (ssize_t)total_size) {
+        close(fd);
+        free(buffer);
+        return -1;
+    }
     fsync(fd);
     close(fd);
-    rename(tmp_path, final_path);
+    if (rename(tmp_path, final_path) != 0) 
+    {
+        free(buffer);
+        return -1;
+    }
 
     int dir_fd = open(dir_path, O_RDONLY);
     if (dir_fd >= 0)
