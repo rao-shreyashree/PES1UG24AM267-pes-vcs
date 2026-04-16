@@ -164,12 +164,43 @@ int tree_serialize(const Tree *tree, void **data_out, size_t *len_out) {
 // Returns 0 on success, -1 on error.
 int tree_from_index(ObjectID *id_out) {
     Index index;
-    if (index_load(&index) != 0) return -1;
+    if (index_load(&index) != 0)
+        return -1;
+    if (index.count == 0)
+        return -1;
 
-    // sanity check
-    if (index.count == 0) return -1;
+    Tree tree;
+    tree.count = 0;
 
-    (void)id_out;
+    for (int i = 0; i < index.count; i++) 
+    {
+        TreeEntry *e = &tree.entries[tree.count++];
+        e->mode = index.entries[i].mode;
+        const char *path = index.entries[i].path;
+
+        // extract filename after last '/'
+        const char *name = strrchr(path, '/');
+        if (name)
+            name++;
+        else
+            name = path;
+
+        strncpy(e->name, name, sizeof(e->name));
+        e->name[sizeof(e->name) - 1] = '\0';
+        memcpy(e->hash.hash, index.entries[i].hash.hash, HASH_SIZE);
+    }
+    void *data;
+    size_t len;
+
+    if (tree_serialize(&tree, &data, &len) != 0)
+        return -1;
+
+    ObjectID root_id;
+    if (object_write(data, len, OBJ_TREE, &root_id) != 0)
+        return -1;
+
+    *id_out = root_id;
+
     return 0;
 }
 
@@ -189,4 +220,22 @@ static void split_path(const char *path, char *dir, char *file)
         dir[dlen] = '\0';
         strcpy(file, slash + 1);
     }
+}
+
+static void insert_entry(TreeNode *root, const char *path, ObjectID id, uint32_t mode) 
+{
+    char dir[256], file[256];
+    split_path(path, dir, file);
+    TreeNode *curr = root;
+
+    // build directories 
+    if (strlen(dir) > 0) 
+    {
+        curr = find_or_create(root, dir);
+    }
+    TreeNode *file_node = create_node(file);
+    file_node->is_dir = 0;
+    file_node->mode = mode;
+    file_node->id = id;
+    curr->children[curr->child_count++] = file_node;
 }
