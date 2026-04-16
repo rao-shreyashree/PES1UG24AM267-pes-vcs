@@ -197,8 +197,7 @@ int commit_create(const char *message, ObjectID *commit_id_out)
 {
     Commit c;
     memset(&c, 0, sizeof(c));
-    if (tree_from_index(&c.tree) != 0) 
-    {
+    if (tree_from_index(&c.tree) != 0) {
         fprintf(stderr, "error: failed to build tree from index\n");
         return -1;
     }
@@ -209,7 +208,7 @@ int commit_create(const char *message, ObjectID *commit_id_out)
     } 
     else 
     {
-        c.has_parent = 0;  
+        c.has_parent = 0;
     }
 
     snprintf(c.author, sizeof(c.author), "%s", pes_author());
@@ -232,5 +231,10 @@ int commit_create(const char *message, ObjectID *commit_id_out)
     }
     free(data);
 
-    return -1;
+    if (head_update(commit_id_out) != 0) {
+        fprintf(stderr, "error: failed to update HEAD\n");
+        return -1;
+    }
+
+    return 0;
 }
