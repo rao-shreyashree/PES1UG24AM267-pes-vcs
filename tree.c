@@ -183,7 +183,7 @@ int tree_from_index(ObjectID *id_out)
         return -1;
 
     ObjectID root_id;
-    if (object_write(data, len, OBJ_TREE, &root_id) != 0)
+    if (object_write(OBJ_TREE, data, len, &root_id) != 0)
         return -1;
 
     *id_out = root_id;
