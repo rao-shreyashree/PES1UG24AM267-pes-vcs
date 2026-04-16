@@ -112,6 +112,16 @@ int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out
     char *buffer = malloc(total_size);
     memcpy(buffer, header, header_len);
     memcpy(buffer + header_len, data, len);
+
+    ObjectID id;
+    compute_hash(buffer, total_size, &id);
+    if (object_exists(&id)) 
+    {
+        free(buffer);
+        if (id_out) 
+            *id_out = id;
+        return 0;
+    }
 }
 
 // Read an object from the store.
