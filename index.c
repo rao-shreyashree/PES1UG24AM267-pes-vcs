@@ -242,14 +242,15 @@ int index_add(Index *index, const char *path)
     FILE *fp = fopen(path, "rb");
     if (!fp) return -1;
 
-    char *buffer = malloc(st.st_size);
+    size_t size = (st.st_size == 0) ? 1 : st.st_size;
+    char *buffer = malloc(size);
     if (!buffer) 
     {
         fclose(fp);
         return -1;
     }
     // fread(buffer, 1, st.st_size, fp);
-    size_t read_bytes = fread(buffer, 1, st.st_size, fp);
+    size_t read_bytes = fread(buffer, 1, (st.st_size == 0 ? 1 : st.st_size), fp);
     if (read_bytes != (size_t)st.st_size) {
         fclose(fp);
         free(buffer);
@@ -258,7 +259,14 @@ int index_add(Index *index, const char *path)
     fclose(fp);
 
     ObjectID oid;
-    object_write(OBJ_BLOB, buffer, st.st_size, &oid);
+    
+    size_t size = (st.st_size == 0) ? 1 : st.st_size;
+    if (object_write(OBJ_BLOB, buffer, size, &oid) != 0) 
+    {
+        free(buffer);
+        fclose(fp);
+        return -1;
+    }
     free(buffer);
     IndexEntry *existing = index_find(index, path);
 
