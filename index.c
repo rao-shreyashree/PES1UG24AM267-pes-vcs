@@ -192,7 +192,7 @@ int index_save(const Index *index)
     if (!fp) 
         return -1;
     Index copy = *index;
-    memcpy(&copy, index, sizeof(Index));
+    // memcpy(&copy, index, sizeof(Index));
     qsort(copy.entries, copy.count, sizeof(IndexEntry), cmp_entries);
 
     for (int i = 0; i < copy.count; i++)
@@ -244,26 +244,28 @@ int index_add(Index *index, const char *path)
     FILE *fp = fopen(path, "rb");
     if (!fp) return -1;
 
-    size_t size = (st.st_size == 0) ? 1 : st.st_size;
+    size_t size = (size_t)st.st_size;
+    if (size == 0) 
+        size = 1;
+
     char *buffer = malloc(size);
-    if (!buffer) 
-    {
+    if (!buffer) {
         fclose(fp);
         return -1;
     }
-    // fread(buffer, 1, st.st_size, fp);
-    size_t read_bytes = fread(buffer, 1, (st.st_size == 0 ? 1 : st.st_size), fp);
-    if (read_bytes != (size_t)st.st_size) {
-        fclose(fp);
+    size_t read_bytes = fread(buffer, 1, st.st_size, fp);
+    fclose(fp);
+
+    if (read_bytes != (size_t)st.st_size) 
+    {
         free(buffer);
         return -1;
     }
-    fclose(fp);
 
     ObjectID oid;
     
     // size_t size = (st.st_size == 0) ? 1 : st.st_size;
-    if (object_write(OBJ_BLOB, buffer, size, &oid) != 0) 
+    if (object_write(OBJ_BLOB, buffer, read_bytes, &oid) != 0)
     {
         free(buffer);
         // fclose(fp);
