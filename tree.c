@@ -23,6 +23,17 @@
 #define MODE_EXEC      0100755
 #define MODE_DIR       0040000
 
+// struct
+typedef struct TreeNode {
+    char name[256];
+    ObjectID id;
+    uint32_t mode;
+    int is_dir;
+
+    struct TreeNode *children[128];
+    int child_count;
+} TreeNode;
+
 // ─── PROVIDED ───────────────────────────────────────────────────────────────
 
 // Determine the object mode for a filesystem path.
