@@ -227,6 +227,11 @@ int index_add(Index *index, const char *path)
         perror("stat");
         return -1;
     }
+    if (!S_ISREG(st.st_mode)) 
+    {
+        fprintf(stderr, "error: %s is not a regular file\n", path);
+        return -1;
+    }
     FILE *fp = fopen(path, "rb");
     if (!fp) return -1;
 
