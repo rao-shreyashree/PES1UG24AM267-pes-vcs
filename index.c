@@ -219,9 +219,49 @@ int index_save(const Index *index)
 //   - index_find                       : checking if the file is already staged
 //
 // Returns 0 on success, -1 on error.
-int index_add(Index *index, const char *path) {
-    // TODO: Implement file staging
-    // (See Lab Appendix for logical steps)
-    (void)index; (void)path;
-    return -1;
+int index_add(Index *index, const char *path) 
+{
+    struct stat st;
+    if (stat(path, &st) != 0) 
+    {
+        perror("stat");
+        return -1;
+    }
+    FILE *fp = fopen(path, "rb");
+    if (!fp) return -1;
+
+    char *buffer = malloc(st.st_size);
+    if (!buffer) 
+    {
+        fclose(fp);
+        return -1;
+    }
+    fread(buffer, 1, st.st_size, fp);
+    fclose(fp);
+
+    ObjectID oid;
+    object_write(OBJ_BLOB, buffer, st.st_size, &oid);
+    free(buffer);
+    IndexEntry *existing = index_find(index, path);
+
+    if (existing) 
+    {
+        existing->mode = st.st_mode;
+        existing->hash = oid;
+        existing->mtime_sec = st.st_mtime;
+        existing->size = st.st_size;
+    } 
+    else 
+    {
+        if (index->count >= MAX_INDEX_ENTRIES) 
+            return -1;
+        IndexEntry *e = &index->entries[index->count++];
+        e->mode = st.st_mode;
+        e->hash = oid;
+        e->mtime_sec = st.st_mtime;
+        e->size = st.st_size;
+        strncpy(e->path, path, sizeof(e->path));
+        e->path[sizeof(e->path) - 1] = '\0';
+    }
+    return index_save(index);
 }
