@@ -140,3 +140,21 @@ int tree_from_index(ObjectID *id_out) {
     (void)id_out;
     return 0;
 }
+
+// helper: get directory part + filename
+static void split_path(const char *path, char *dir, char *file) 
+{
+    const char *slash = strrchr(path, '/');
+    if (!slash) 
+    {
+        strcpy(dir, "");
+        strcpy(file, path);
+    } 
+    else 
+    {
+        size_t dlen = slash - path;
+        strncpy(dir, path, dlen);
+        dir[dlen] = '\0';
+        strcpy(file, slash + 1);
+    }
+}
