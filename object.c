@@ -102,6 +102,10 @@ int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out
         type_str = "commit";
     else 
         return -1;
+    char header[64];
+    int header_len = snprintf(header, sizeof(header), "%s %zu", type_str, len);
+    header[header_len] = '\0';
+    header_len += 1;
 }
 
 // Read an object from the store.
