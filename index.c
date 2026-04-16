@@ -145,6 +145,7 @@ static int cmp_entries(const void *a, const void *b)
 
 int index_load(Index *index) 
 {
+    memset(index, 0, sizeof(Index));
     FILE *fp = fopen(".pes/index", "r");
     index->count = 0;
     if (!fp) 
@@ -191,6 +192,7 @@ int index_save(const Index *index)
     if (!fp) 
         return -1;
     Index copy = *index;
+    memcpy(&copy, index, sizeof(Index));
     qsort(copy.entries, copy.count, sizeof(IndexEntry), cmp_entries);
 
     for (int i = 0; i < copy.count; i++)
@@ -260,7 +262,7 @@ int index_add(Index *index, const char *path)
 
     ObjectID oid;
     
-    size_t size = (st.st_size == 0) ? 1 : st.st_size;
+    // size_t size = (st.st_size == 0) ? 1 : st.st_size;
     if (object_write(OBJ_BLOB, buffer, size, &oid) != 0) 
     {
         free(buffer);
