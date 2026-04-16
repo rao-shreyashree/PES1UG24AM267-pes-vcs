@@ -145,17 +145,22 @@ static int cmp_entries(const void *a, const void *b)
 int index_load(Index *index) 
 {
     FILE *fp = fopen(".pes/index", "r");
+    index->count = 0;
     if (!fp) 
     {
         index->count = 0;
         return 0;
     }
-    index->count = 0;
     char mode[16], hash_hex[65], path[1024];
     long mtime, size;
 
     while (fscanf(fp, "%s %64s %ld %ld %1023s", mode, hash_hex, &mtime, &size, path) == 5) {
 
+        if (index->count >= MAX_INDEX_ENTRIES) 
+        {
+            fclose(fp);
+            return -1;
+        }
         IndexEntry *e = &index->entries[index->count++];
         e->mode = (mode_t)strtol(mode, NULL, 8);
         hex_to_hash(hash_hex, &e->hash);
@@ -199,7 +204,8 @@ int index_save(const Index *index)
                 copy.entries[i].path);
     }
     fflush(fp);
-    fsync(fileno(fp));
+    int fd = fileno(fp);
+    fsync(fd);
     fclose(fp);
 
     if (rename(tmp_path, ".pes/index") != 0) 
@@ -241,7 +247,13 @@ int index_add(Index *index, const char *path)
         fclose(fp);
         return -1;
     }
-    fread(buffer, 1, st.st_size, fp);
+    // fread(buffer, 1, st.st_size, fp);
+    size_t read_bytes = fread(buffer, 1, st.st_size, fp);
+    if (read_bytes != (size_t)st.st_size) {
+        fclose(fp);
+        free(buffer);
+        return -1;
+    }
     fclose(fp);
 
     ObjectID oid;
@@ -251,7 +263,7 @@ int index_add(Index *index, const char *path)
 
     if (existing) 
     {
-        existing->mode = st.st_mode;
+        existing->mode = st.st_mode & 0100777;
         existing->hash = oid;
         existing->mtime_sec = st.st_mtime;
         existing->size = st.st_size;
@@ -261,7 +273,7 @@ int index_add(Index *index, const char *path)
         if (index->count >= MAX_INDEX_ENTRIES) 
             return -1;
         IndexEntry *e = &index->entries[index->count++];
-        e->mode = st.st_mode;
+        e->mode = st.st_mode & 0100777;
         e->hash = oid;
         e->mtime_sec = st.st_mtime;
         e->size = st.st_size;
