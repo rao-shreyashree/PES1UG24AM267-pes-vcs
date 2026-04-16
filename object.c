@@ -91,7 +91,6 @@ int object_exists(const ObjectID *id) {
 //   - rename             : atomically moving the temp file to the final path
 //
 
-//
 // Returns 0 on success, -1 on error.
 int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out) {
     const char *type_str;
