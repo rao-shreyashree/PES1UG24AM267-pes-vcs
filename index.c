@@ -187,16 +187,22 @@ static int compare_entries(const void *a, const void *b) {
 
 int index_save(const Index *index) 
 {
-    Index sorted = *index;
-    qsort(sorted.entries, sorted.count, sizeof(IndexEntry), compare_entries);
+    Index *sorted = malloc(sizeof(Index));
+    if (!sorted) return -1;
+    *sorted = *index;
+
+    qsort(sorted->entries, sorted->count, sizeof(IndexEntry), compare_entries);
 
     const char *tmp_path = ".pes/index.tmp";
     FILE *f = fopen(tmp_path, "w");
-    if (!f) return -1;
+    if (!f) { 
+        free(sorted); 
+        return -1; 
+    }
 
     char hex[65];
-    for (int i = 0; i < sorted.count; i++) {
-        const IndexEntry *e = &sorted.entries[i];
+    for (int i = 0; i < sorted->count; i++) {
+        const IndexEntry *e = &sorted->entries[i];
         hash_to_hex(&e->hash, hex);
         fprintf(f, "%o %s %llu %u %s\n",
                 e->mode, hex,
@@ -207,6 +213,7 @@ int index_save(const Index *index)
     fflush(f);
     fsync(fileno(f));
     fclose(f);
+    free(sorted);
 
     if (rename(tmp_path, ".pes/index") != 0) 
         return -1;
