@@ -191,9 +191,14 @@ int index_save(const Index *index)
     FILE *fp = fopen(tmp_path, "w");
     if (!fp) 
         return -1;
-    Index copy = *index;
-    // memcpy(&copy, index, sizeof(Index));
+    Index copy;
+    memcpy(&copy, index, sizeof(Index));
     qsort(copy.entries, copy.count, sizeof(IndexEntry), cmp_entries);
+    if (copy.count <= 0) {
+        fclose(fp);
+        rename(tmp_path, ".pes/index");
+        return 0;
+    }
 
     for (int i = 0; i < copy.count; i++)
     {
