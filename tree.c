@@ -189,3 +189,7 @@ int tree_from_index(ObjectID *id_out)
 
     return 0;
 }
+
+// phase 2 
+// 2A is done
+// 2B has dependency on phase 4
