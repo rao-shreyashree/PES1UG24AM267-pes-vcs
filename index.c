@@ -142,11 +142,30 @@ static int cmp_entries(const void *a, const void *b)
     return strcmp(ea->path, eb->path);
 }
 
-int index_load(Index *index) {
-    // TODO: Implement index loading
-    // (See Lab Appendix for logical steps)
-    (void)index;
-    return -1;
+int index_load(Index *index) 
+{
+    FILE *fp = fopen(".pes/index", "r");
+    if (!fp) 
+    {
+        index->count = 0;
+        return 0;
+    }
+    index->count = 0;
+    char mode[16], hash_hex[65], path[1024];
+    long mtime, size;
+
+    while (fscanf(fp, "%s %64s %ld %ld %1023s", mode, hash_hex, &mtime, &size, path) == 5) {
+
+        IndexEntry *e = &index->entries[index->count++];
+        e->mode = (mode_t)strtol(mode, NULL, 8);
+        hex_to_hash(hash_hex, &e->hash);
+        e->mtime_sec = (time_t)mtime;
+        e->size = (off_t)size;
+        strncpy(e->path, path, sizeof(e->path));
+        e->path[sizeof(e->path) - 1] = '\0';
+    }
+    fclose(fp);
+    return 0;
 }
 
 // Save the index to .pes/index atomically.
