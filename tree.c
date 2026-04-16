@@ -23,7 +23,7 @@
 #define MODE_EXEC      0100755
 #define MODE_DIR       0040000
 
-// struct
+// tree structure
 typedef struct TreeNode {
     char name[256];
     ObjectID id;
@@ -33,6 +33,27 @@ typedef struct TreeNode {
     struct TreeNode *children[128];
     int child_count;
 } TreeNode;
+
+static TreeNode *create_node(const char *name) 
+{
+    TreeNode *n = calloc(1, sizeof(TreeNode));
+    strcpy(n->name, name);
+    n->child_count = 0;
+    n->is_dir = 1;
+    return n;
+}
+
+static TreeNode *find_or_create(TreeNode *root, const char *name) 
+{
+    for (int i = 0; i < root->child_count; i++) 
+    {
+        if (strcmp(root->children[i]->name, name) == 0)
+            return root->children[i];
+    }
+    TreeNode *n = create_node(name);
+    root->children[root->child_count++] = n;
+    return n;
+}
 
 // ─── PROVIDED ───────────────────────────────────────────────────────────────
 
