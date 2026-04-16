@@ -266,7 +266,7 @@ int index_add(Index *index, const char *path)
     if (object_write(OBJ_BLOB, buffer, size, &oid) != 0) 
     {
         free(buffer);
-        fclose(fp);
+        // fclose(fp);
         return -1;
     }
     free(buffer);
