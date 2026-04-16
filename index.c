@@ -149,19 +149,19 @@ int index_load(Index *index) {
     index->count = 0;
 
     FILE *f = fopen(".pes/index", "r");
-    if (!f) return 0;  // no index yet = empty, not an error
+    if (!f) 
+        return 0;
 
     char hex[65];
     while (index->count < MAX_INDEX_ENTRIES) {
         IndexEntry *e = &index->entries[index->count];
-        int ret = fscanf(f, "%o %64s %llu %u %255s",
-                 &e->mode,
-                 hex,
-                 (unsigned long long *)&e->mtime_sec,
-                 &e->size,
-                 e->path);
-        if (ret == EOF) break;
-        if (ret != 5) { fclose(f); return -1; }
+        int ret = fscanf(f, "%o %64s %llu %u %255s", &e->mode, hex, (unsigned long long *)&e->mtime_sec, &e->size, e->path);
+        if (ret == EOF) 
+            break;
+        if (ret != 5) { 
+            fclose(f); 
+            return -1; 
+        }
 
         if (hex_to_hash(hex, &e->hash) != 0) { fclose(f); return -1; }
         index->count++;
@@ -181,8 +181,7 @@ int index_load(Index *index) {
 //   - rename                           : atomically moving the temp file over the old index
 //
 // Returns 0 on success, -1 on error.
-static int compare_entries(const void *a, const void *b) 
-{
+static int compare_entries(const void *a, const void *b) {
     return strcmp(((const IndexEntry *)a)->path, ((const IndexEntry *)b)->path);
 }
 
@@ -196,12 +195,13 @@ int index_save(const Index *index)
     if (!f) return -1;
 
     char hex[65];
-    for (int i = 0; i < sorted.count; i++) 
-    {
+    for (int i = 0; i < sorted.count; i++) {
         const IndexEntry *e = &sorted.entries[i];
         hash_to_hex(&e->hash, hex);
         fprintf(f, "%o %s %llu %u %s\n",
-        e->mode, hex, (unsigned long long)e->mtime_sec, e->size, e->path);
+                e->mode, hex,
+                (unsigned long long)e->mtime_sec,
+                e->size, e->path);
     }
 
     fflush(f);
@@ -222,11 +222,12 @@ int index_save(const Index *index)
 //   - index_find                       : checking if the file is already staged
 //
 // Returns 0 on success, -1 on error.
-int index_add(Index *index, const char *path) 
-{
-    // Read the file contents
+int index_add(Index *index, const char *path) {
     FILE *f = fopen(path, "rb");
-    if (!f) { perror(path); return -1; }
+    if (!f) { 
+        perror(path); 
+        return -1; 
+    }
 
     struct stat st;
     if (lstat(path, &st) != 0) { 
@@ -242,8 +243,8 @@ int index_add(Index *index, const char *path)
 
     if (fread(data, 1, st.st_size, f) != (size_t)st.st_size) 
     {
-        free(data);
-        fclose(f);
+        free(data); 
+        fclose(f); 
         return -1;
     }
     fclose(f);
@@ -251,23 +252,24 @@ int index_add(Index *index, const char *path)
     ObjectID id;
     if (object_write(OBJ_BLOB, data, st.st_size, &id) != 0) 
     {
-        free(data);
+        free(data); 
         return -1;
     }
     free(data);
 
-    IndexEntry *existing = index_find(index, path);
-    if (!existing) {
+    // Upsert: reuse existing slot or append new entry
+    IndexEntry *e = index_find(index, path);
+    if (!e) {
         if (index->count >= MAX_INDEX_ENTRIES) return -1;
-        existing = &index->entries[index->count++];
+        e = &index->entries[index->count++];
     }
 
-    existing->mode     = get_file_mode(path);
-    existing->hash       = id;
-    existing->mtime_sec = (long)st.st_mtime;
-    existing->size     = (size_t)st.st_size;
-    strncpy(existing->path, path, sizeof(existing->path) - 1);
-    existing->path[sizeof(existing->path) - 1] = '\0';
+    e->mode      = get_file_mode(path);
+    e->hash      = id;
+    e->mtime_sec = (uint64_t)st.st_mtime;
+    e->size      = (uint32_t)st.st_size;
+    strncpy(e->path, path, sizeof(e->path) - 1);
+    e->path[sizeof(e->path) - 1] = '\0';
 
     return index_save(index);
 }
