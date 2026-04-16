@@ -202,6 +202,16 @@ int commit_create(const char *message, ObjectID *commit_id_out)
         fprintf(stderr, "error: failed to build tree from index\n");
         return -1;
     }
+
+    if (head_read(&c.parent) == 0) 
+    {
+        c.has_parent = 1;
+    } 
+    else 
+    {
+        c.has_parent = 0;  
+    }
+
     (void)message; 
     (void)commit_id_out;
     return -1;
